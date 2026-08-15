@@ -503,6 +503,8 @@ els.saveBtn.addEventListener("click", () => {
 
 els.clearBtn.addEventListener("click", () => {
   state.lines = [];
+  state.files = [];
+  refreshFileList();
   els.output.value = "";
   els.notes.innerHTML = "";
   [els.copyBtn, els.saveBtn, els.openBtn].forEach((b) => (b.disabled = true));
