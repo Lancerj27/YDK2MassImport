@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>YDK to TCGplayer Mass Entry</title>
+<meta name="description" content="Drop in your .ydk YuGiOh deck files and get a TCGplayer Mass Entry list out. Runs entirely in your browser.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>YDK → TCGplayer Mass Entry</h1>
+    <p class="sub">
+      Drop in your <code>.ydk</code> deck file(s) and get a
+      <a href="https://www.tcgplayer.com/massentry" target="_blank" rel="noopener">TCGplayer Mass Entry</a>
+      list out. Runs entirely in your browser — nothing is uploaded anywhere except
+      card lookups to the public <a href="https://ygoprodeck.com/api-guide/" target="_blank" rel="noopener">YGOPRODeck API</a>.
+    </p>
+  </header>
+
+  <section class="card" id="drop-section">
+    <h2>Deck files</h2>
+    <div id="dropzone" class="dropzone">
+      <p><strong>Drag &amp; drop</strong> .ydk file(s) here, or</p>
+      <label class="btn file-btn">
+        Browse...
+        <input type="file" id="fileInput" accept=".ydk" multiple hidden>
+      </label>
+    </div>
+    <ul id="fileList" class="file-list"></ul>
+    <p class="hint" id="fileHint">Multiple decks are combined into one list.</p>
+  </section>
+
+  <section class="card">
+    <h2>Include</h2>
+    <div class="options-row">
+      <label><input type="checkbox" id="optMain" checked> Main deck</label>
+      <label><input type="checkbox" id="optExtra" checked> Extra deck</label>
+      <label><input type="checkbox" id="optSide"> Side deck</label>
+    </div>
+    <label class="tcg-flag">
+      <input type="checkbox" id="optTcgFlag" checked>
+      Flag OCG-only cards (not sold on TCGplayer)
+    </label>
+  </section>
+
+  <section class="card">
+    <div class="convert-row">
+      <button id="convertBtn" class="btn primary">Convert</button>
+      <div id="spinner" class="spinner hidden"></div>
+      <span id="status" class="status">Choose one or more .ydk files.</span>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Mass Entry list</h2>
+    <textarea id="output" class="output" readonly spellcheck="false" placeholder="Your Mass Entry list will appear here..."></textarea>
+    <div id="notes" class="notes"></div>
+    <div class="output-actions">
+      <button id="copyBtn" class="btn" disabled>Copy list</button>
+      <button id="saveBtn" class="btn" disabled>Save as .txt</button>
+      <button id="openBtn" class="btn" disabled>Open in TCGplayer</button>
+    </div>
+  </section>
+
+  <footer>
+    <p>
+      Card data from <a href="https://ygoprodeck.com" target="_blank" rel="noopener">YGOPRODeck</a>.
+      Not affiliated with Konami or TCGplayer.
+      &middot; <a href="https://github.com/" id="repoLink" target="_blank" rel="noopener">Source on GitHub</a>
+    </p>
+  </footer>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

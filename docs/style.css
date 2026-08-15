@@ -1,0 +1,252 @@
+:root {
+  --bg: #0f1115;
+  --card-bg: #171a21;
+  --border: #2a2f3a;
+  --text: #e6e8ec;
+  --text-dim: #9aa1ac;
+  --accent: #4f8cff;
+  --accent-hover: #6ba0ff;
+  --warn: #d99a3b;
+  --err: #e35d5d;
+  --ok: #4caf6e;
+  --radius: 10px;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+}
+
+.wrap {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 32px 20px 60px;
+}
+
+header h1 {
+  font-size: 1.9rem;
+  margin-bottom: 6px;
+}
+
+header .sub {
+  color: var(--text-dim);
+  font-size: 0.95rem;
+  margin-top: 0;
+}
+
+a { color: var(--accent); }
+a:hover { color: var(--accent-hover); }
+
+code {
+  background: #23262f;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 0.9em;
+}
+
+.card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  margin-top: 20px;
+}
+
+.card h2 {
+  margin-top: 0;
+  font-size: 1.05rem;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 600;
+}
+
+.dropzone {
+  border: 2px dashed var(--border);
+  border-radius: var(--radius);
+  padding: 28px 16px;
+  text-align: center;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.dropzone.drag-over {
+  border-color: var(--accent);
+  background: rgba(79, 140, 255, 0.06);
+}
+
+.dropzone p {
+  margin: 0 0 10px;
+  color: var(--text-dim);
+}
+
+.file-list {
+  list-style: none;
+  padding: 0;
+  margin: 14px 0 0;
+}
+
+.file-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: #1d212b;
+  margin-bottom: 6px;
+  font-size: 0.9rem;
+}
+
+.file-list li button {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+  padding: 2px 6px;
+}
+
+.file-list li button:hover {
+  color: var(--err);
+}
+
+.hint {
+  color: var(--text-dim);
+  font-size: 0.85rem;
+  margin-bottom: 0;
+}
+
+.options-row {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.options-row label,
+.tcg-flag {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+input[type="checkbox"] {
+  accent-color: var(--accent);
+  width: 16px;
+  height: 16px;
+}
+
+.btn {
+  background: #23262f;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 9px 16px;
+  font-size: 0.92rem;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.btn:hover:not(:disabled) {
+  background: #2b2f3a;
+  border-color: #3a4050;
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.btn.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+  font-weight: 600;
+}
+
+.btn.primary:hover:not(:disabled) {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+}
+
+.file-btn {
+  display: inline-block;
+}
+
+.convert-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.status {
+  color: var(--text-dim);
+  font-size: 0.9rem;
+}
+
+.spinner {
+  width: 18px;
+  height: 18px;
+  border: 3px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.spinner.hidden { display: none; }
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.output {
+  width: 100%;
+  min-height: 220px;
+  background: #0c0e12;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 12px;
+  font-family: "SFMono-Regular", Consolas, Menlo, monospace;
+  font-size: 0.92rem;
+  resize: vertical;
+  white-space: pre;
+}
+
+.notes {
+  margin-top: 12px;
+  font-size: 0.88rem;
+}
+
+.notes .note {
+  padding: 8px 10px;
+  border-radius: 6px;
+  margin-bottom: 8px;
+  background: #1d212b;
+}
+
+.notes .note.warn { color: var(--warn); border-left: 3px solid var(--warn); }
+.notes .note.err { color: var(--err); border-left: 3px solid var(--err); }
+.notes .note.dim { color: var(--text-dim); border-left: 3px solid var(--border); }
+
+.output-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+}
+
+footer {
+  margin-top: 30px;
+  text-align: center;
+  color: var(--text-dim);
+  font-size: 0.82rem;
+}
