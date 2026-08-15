@@ -293,6 +293,7 @@ const els = {
   copyBtn: document.getElementById("copyBtn"),
   saveBtn: document.getElementById("saveBtn"),
   openBtn: document.getElementById("openBtn"),
+  clearBtn: document.getElementById("clearBtn"),
 };
 
 function refreshFileList() {
@@ -498,6 +499,14 @@ els.saveBtn.addEventListener("click", () => {
   a.remove();
   URL.revokeObjectURL(url);
   setStatus("Saved massentry.txt");
+});
+
+els.clearBtn.addEventListener("click", () => {
+  state.lines = [];
+  els.output.value = "";
+  els.notes.innerHTML = "";
+  [els.copyBtn, els.saveBtn, els.openBtn].forEach((b) => (b.disabled = true));
+  setStatus("Cleared. Choose one or more .ydk files.");
 });
 
 els.openBtn.addEventListener("click", () => {
