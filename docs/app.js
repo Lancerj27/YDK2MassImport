@@ -2,19 +2,28 @@
 
 /* ==========================================================================
  * ydk2tcg — browser port of ydk2tcg_gui.py
- * Parses .ydk files, resolves passcodes via the YGOPRODeck API, tallies
- * duplicates, and produces a TCGplayer Mass Entry list. Runs 100% client
- * side; the only network calls are to db.ygoprodeck.com.
+ * Parses .ydk files, resolves passcodes via a bundled local card database
+ * (cards.json) with the YGOPRODeck API as a fallback for anything missing
+ * (new cards released after cards.json was generated), tallies duplicates,
+ * and produces a TCGplayer Mass Entry list.
+ *
+ * cards.json is a static file shipped alongside this script, built with
+ * build_card_cache.py / convert_card_cache.py. It maps every known
+ * passcode (incl. alt-art ids) to {name, tcg}. Because nearly all lookups
+ * are satisfied locally, there's effectively no per-user rate-limit
+ * concern anymore -- the live API is only touched for genuine misses.
  * ========================================================================== */
 
 const API_URL = "https://db.ygoprodeck.com/api/v7/cardinfo.php";
 const MASSENTRY_URL = "https://www.tcgplayer.com/massentry";
+const LOCAL_CARDS_URL = "cards.json"; // static file shipped next to this script
 
 const CHUNK_SIZE = 100;
 const URL_SOFT_LIMIT = 7000;
 
 // YGOPRODeck allows 20 requests/sec and blocks for an hour if you exceed it.
-// We deliberately sit an order of magnitude below that ceiling.
+// We deliberately sit an order of magnitude below that ceiling. This only
+// matters now for the rare fallback lookups the local cache doesn't cover.
 const MIN_REQUEST_GAP_MS = 500; // 2 req/sec
 
 const CACHE_KEY = "ydk2tcg_cache_v2";
@@ -74,6 +83,30 @@ function parseYdk(text) {
     sections[current].push(parseInt(digits, 10));
   }
   return sections;
+}
+
+// ---------------------------------------------------------------------
+// Local static card database (cards.json)
+// ---------------------------------------------------------------------
+
+// Loaded once and reused for the lifetime of the page. Shape matches the
+// in-memory `cards` cache used elsewhere: { [passcode]: { name, tcg } }.
+let localCardsPromise = null;
+
+function loadLocalCards() {
+  if (!localCardsPromise) {
+    localCardsPromise = fetch(LOCAL_CARDS_URL)
+      .then((resp) => {
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        return resp.json();
+      })
+      .catch((exc) => {
+        // Not fatal -- we just fall back to the live API for everything.
+        console.warn(`Could not load local card database (${LOCAL_CARDS_URL}): ${exc.message}`);
+        return {};
+      });
+  }
+  return localCardsPromise;
 }
 
 // ---------------------------------------------------------------------
@@ -178,12 +211,22 @@ function indexResponse(payload, out) {
 }
 
 async function resolveNames(passcodes, checkTcg, onProgress) {
+  // Local static database first -- this satisfies the overwhelming
+  // majority of lookups with zero network calls.
+  onProgress && onProgress("Loading local card database...");
+  const localCards = await loadLocalCards();
+
   const { cards, misses } = loadCache();
   const now = Date.now();
 
+  // Merge local cards into the working set. localStorage-cached entries
+  // (from earlier live lookups, e.g. brand-new cards) take precedence
+  // since they may be more complete (e.g. include the tcg flag).
+  const merged = { ...localCards, ...cards };
+
   function satisfied(cid) {
     const key = String(cid);
-    const rec = cards[key];
+    const rec = merged[key];
     if (rec) return !(checkTcg && !("tcg" in rec));
     const seen = misses[key];
     return typeof seen === "number" && now - seen < MISS_TTL_MS;
@@ -194,14 +237,21 @@ async function resolveNames(passcodes, checkTcg, onProgress) {
   let warning = null;
 
   if (missing.length === 0) {
-    onProgress && onProgress("All names already cached — no lookup needed.");
-    return { cards, warning: null };
+    onProgress &&
+      onProgress("All names resolved from the local database — no lookup needed.");
+    return { cards: merged, warning: null };
   }
 
   const chunks = [];
   for (let i = 0; i < missing.length; i += CHUNK_SIZE) {
     chunks.push(missing.slice(i, i + CHUNK_SIZE));
   }
+
+  onProgress &&
+    onProgress(
+      `${passcodes.length - missing.length} card(s) resolved locally. ` +
+        `Looking up ${missing.length} more from the live database...`
+    );
 
   for (let n = 0; n < chunks.length; n++) {
     const chunk = chunks[n];
@@ -227,16 +277,20 @@ async function resolveNames(passcodes, checkTcg, onProgress) {
     }
 
     indexResponse(payload, cards);
+    indexResponse(payload, merged);
 
     // Anything the server answered about but did not return is genuinely
     // unknown to it. Record that so we stop asking on every future run.
     for (const cid of chunk) {
-      if (!(String(cid) in cards)) misses[String(cid)] = now;
+      if (!(String(cid) in merged)) misses[String(cid)] = now;
     }
   }
 
+  // Only the live-lookup results (and misses) go into localStorage --
+  // the local static database is re-fetched from cards.json each load,
+  // so there's no need to duplicate it into localStorage too.
   saveCache(cards, misses);
-  return { cards, warning };
+  return { cards: merged, warning };
 }
 
 function tally(ids) {
