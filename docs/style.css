@@ -6,6 +6,7 @@
   --text-dim: #9aa1ac;
   --accent: #4f8cff;
   --accent-hover: #6ba0ff;
+  --info: #4f8cff;
   --warn: #d99a3b;
   --err: #e35d5d;
   --ok: #4caf6e;
@@ -233,6 +234,7 @@ input[type="checkbox"] {
   background: #1d212b;
 }
 
+.notes .note.info { color: var(--info); border-left: 3px solid var(--info); }
 .notes .note.warn { color: var(--warn); border-left: 3px solid var(--warn); }
 .notes .note.err { color: var(--err); border-left: 3px solid var(--err); }
 .notes .note.dim { color: var(--text-dim); border-left: 3px solid var(--border); }
