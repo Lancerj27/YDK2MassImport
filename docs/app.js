@@ -420,11 +420,50 @@ els.dropzone.addEventListener("drop", (e) => {
 function setBusy(busy) {
   els.convertBtn.disabled = busy;
   els.spinner.classList.toggle("hidden", !busy);
-  if (busy) els.status.textContent = "Working...";
+  if (busy) {
+    els.status.textContent = "Working...";
+    setSourceBadge(null);
+  }
 }
 
 function setStatus(msg) {
   els.status.textContent = msg;
+}
+
+// Small pill badge shown next to the status line indicating whether the
+// last conversion's card names came from the local database, a live
+// YGOPRODeck lookup, or both. Built lazily and inserted right after the
+// status element so no HTML changes are required.
+let sourceBadgeEl = null;
+function getSourceBadge() {
+  if (!sourceBadgeEl) {
+    sourceBadgeEl = document.createElement("span");
+    sourceBadgeEl.className = "source-badge hidden";
+    els.status.insertAdjacentElement("afterend", sourceBadgeEl);
+  }
+  return sourceBadgeEl;
+}
+
+function setSourceBadge(kind) {
+  const badge = getSourceBadge();
+  if (!kind) {
+    badge.classList.add("hidden");
+    return;
+  }
+  const variants = {
+    local: { cls: "local", icon: "⚡", label: "Local database" },
+    api: { cls: "api", icon: "🌐", label: "Live lookup" },
+    mixed: { cls: "mixed", icon: "🌐", label: "Local + live lookup" },
+  };
+  const v = variants[kind];
+  badge.className = `source-badge ${v.cls}`;
+  badge.textContent = `${v.icon} ${v.label}`;
+  badge.title =
+    kind === "local"
+      ? "All card names resolved from the bundled local database — no network lookup needed."
+      : kind === "api"
+      ? "Card names were resolved via a live lookup to YGOPRODeck (not found in the local database)."
+      : "Most card names came from the local database; some required a live YGOPRODeck lookup.";
 }
 
 function showError(text) {
@@ -432,6 +471,7 @@ function showError(text) {
   els.notes.innerHTML = "";
   [els.copyBtn, els.saveBtn, els.openBtn].forEach((b) => (b.disabled = true));
   setStatus("Nothing to convert.");
+  setSourceBadge(null);
 }
 
 function render({ lines, unresolved, ocgOnly, warning, empty, total, usedApi, apiLookupCount }) {
@@ -486,6 +526,14 @@ function render({ lines, unresolved, ocgOnly, warning, empty, total, usedApi, ap
 
   const enabled = lines.length > 0;
   [els.copyBtn, els.saveBtn, els.openBtn].forEach((b) => (b.disabled = !enabled));
+
+  if (usedApi && apiLookupCount > 0) {
+    setSourceBadge("mixed");
+  } else if (usedApi) {
+    setSourceBadge("api");
+  } else {
+    setSourceBadge("local");
+  }
 
   setStatus(
     `${lines.length} unique card(s), ${total} total.` +
@@ -593,6 +641,7 @@ els.clearBtn.addEventListener("click", () => {
   els.notes.innerHTML = "";
   [els.copyBtn, els.saveBtn, els.openBtn].forEach((b) => (b.disabled = true));
   setStatus("Cleared. Choose one or more .ydk files.");
+  setSourceBadge(null);
 });
 
 els.openBtn.addEventListener("click", () => {
