@@ -451,19 +451,16 @@ function setSourceBadge(kind) {
     return;
   }
   const variants = {
-    local: { cls: "local", icon: "⚡", label: "Local database" },
-    api: { cls: "api", icon: "🌐", label: "Live lookup" },
-    mixed: { cls: "mixed", icon: "🌐", label: "Local + live lookup" },
+    local: { cls: "local", label: "Pulled from local data" },
+    api: { cls: "api", label: "Pulled from API" },
   };
   const v = variants[kind];
   badge.className = `source-badge ${v.cls}`;
-  badge.textContent = `${v.icon} ${v.label}`;
+  badge.textContent = v.label;
   badge.title =
     kind === "local"
       ? "All card names resolved from the bundled local database — no network lookup needed."
-      : kind === "api"
-      ? "Card names were resolved via a live lookup to YGOPRODeck (not found in the local database)."
-      : "Most card names came from the local database; some required a live YGOPRODeck lookup.";
+      : "One or more card names required a live lookup to YGOPRODeck (not found in the local database).";
 }
 
 function showError(text) {
@@ -527,13 +524,7 @@ function render({ lines, unresolved, ocgOnly, warning, empty, total, usedApi, ap
   const enabled = lines.length > 0;
   [els.copyBtn, els.saveBtn, els.openBtn].forEach((b) => (b.disabled = !enabled));
 
-  if (usedApi && apiLookupCount > 0) {
-    setSourceBadge("mixed");
-  } else if (usedApi) {
-    setSourceBadge("api");
-  } else {
-    setSourceBadge("local");
-  }
+  setSourceBadge(usedApi ? "api" : "local");
 
   setStatus(
     `${lines.length} unique card(s), ${total} total.` +
