@@ -228,6 +228,11 @@ async function resolveNames(passcodes, checkTcg, onProgress) {
   // in passcodes that cards.json doesn't have at all.
   const merged = { ...cards, ...localCards };
 
+  // Snapshot of what localStorage had *before* this run adds anything, so
+  // we can tell "already-cached from a past API lookup" apart from
+  // "resolved via API just now" when tallying sources below.
+  const cacheKeysBefore = new Set(Object.keys(cards));
+
   function satisfied(cid) {
     const key = String(cid);
     const rec = merged[key];
@@ -240,10 +245,22 @@ async function resolveNames(passcodes, checkTcg, onProgress) {
   const missing = Array.from(missingSet).sort((a, b) => a - b);
   let warning = null;
 
+  function tallySources(ids) {
+    const sources = { file: 0, cache: 0, api: 0 };
+    for (const cid of ids) {
+      const key = String(cid);
+      if (key in localCards) sources.file++;
+      else if (cacheKeysBefore.has(key)) sources.cache++;
+      else if (key in cards) sources.api++; // added to `cards` during this run
+    }
+    return sources;
+  }
+
   if (missing.length === 0) {
     onProgress &&
       onProgress("All names resolved from the local database — no lookup needed.");
-    return { cards: merged, warning: null, usedApi: false, apiLookupCount: 0 };
+    const sources = tallySources(passcodes);
+    return { cards: merged, warning: null, usedApi: false, apiLookupCount: 0, sources };
   }
 
   const chunks = [];
@@ -303,11 +320,13 @@ async function resolveNames(passcodes, checkTcg, onProgress) {
     if (String(cid) in merged) apiLookupCount++;
   }
 
+  const sources = tallySources(passcodes);
+
   // Only the live-lookup results (and misses) go into localStorage --
   // the local static database is re-fetched from cards.json each load,
   // so there's no need to duplicate it into localStorage too.
   saveCache(cards, misses);
-  return { cards: merged, warning, usedApi, apiLookupCount };
+  return { cards: merged, warning, usedApi, apiLookupCount, sources };
 }
 
 function tally(ids) {
@@ -434,10 +453,12 @@ function setStatus(msg) {
   els.status.textContent = msg;
 }
 
-// Small pill badge shown next to the status line indicating whether the
-// last conversion's card names came from the local database, a live
-// YGOPRODeck lookup, or both. Built lazily and inserted right after the
-// status element so no HTML changes are required.
+// Three-symbol source indicator shown next to the status line after a
+// conversion, one entry per data source actually used to resolve the
+// deck's cards: 📄 cards.json (static file), 💾 localStorage (browser
+// cache of past live lookups), 🌐 live API call made during this run.
+// Built lazily and inserted right after the status element, in the same
+// convert-row as the Convert button, so no HTML changes are required.
 let sourceBadgeEl = null;
 function getSourceBadge() {
   if (!sourceBadgeEl) {
@@ -448,23 +469,40 @@ function getSourceBadge() {
   return sourceBadgeEl;
 }
 
-function setSourceBadge(kind) {
+const SOURCE_META = {
+  file: { icon: "📄", cls: "file", label: "cards.json" },
+  cache: { icon: "💾", cls: "cache", label: "browser cache" },
+  api: { icon: "🌐", cls: "api", label: "live API" },
+};
+
+// sources: { file: n, cache: n, api: n } or null to hide the indicator.
+function setSourceBadge(sources) {
   const badge = getSourceBadge();
-  if (!kind) {
+  if (!sources) {
+    badge.classList.add("hidden");
+    badge.innerHTML = "";
+    return;
+  }
+
+  const parts = [];
+  for (const key of ["file", "cache", "api"]) {
+    const count = sources[key] || 0;
+    if (count === 0) continue;
+    const meta = SOURCE_META[key];
+    const chip = document.createElement("span");
+    chip.className = `source-chip ${meta.cls}`;
+    chip.title = `${count} card(s) from ${meta.label}`;
+    chip.textContent = `${meta.icon} ${count}`;
+    parts.push(chip);
+  }
+
+  badge.className = "source-badge";
+  badge.innerHTML = "";
+  if (parts.length === 0) {
     badge.classList.add("hidden");
     return;
   }
-  const variants = {
-    local: { cls: "local", label: "Pulled from local data" },
-    api: { cls: "api", label: "Pulled from API" },
-  };
-  const v = variants[kind];
-  badge.className = `source-badge ${v.cls}`;
-  badge.textContent = v.label;
-  badge.title =
-    kind === "local"
-      ? "All card names resolved from the bundled local database — no network lookup needed."
-      : "One or more card names required a live lookup to YGOPRODeck (not found in the local database).";
+  for (const chip of parts) badge.appendChild(chip);
 }
 
 function showError(text) {
@@ -475,7 +513,7 @@ function showError(text) {
   setSourceBadge(null);
 }
 
-function render({ lines, unresolved, ocgOnly, warning, empty, total, usedApi, apiLookupCount }) {
+function render({ lines, unresolved, ocgOnly, warning, empty, total, usedApi, apiLookupCount, sources }) {
   state.lines = lines;
   els.output.value = lines.join("\n");
 
@@ -528,7 +566,7 @@ function render({ lines, unresolved, ocgOnly, warning, empty, total, usedApi, ap
   const enabled = lines.length > 0;
   [els.copyBtn, els.saveBtn, els.openBtn].forEach((b) => (b.disabled = !enabled));
 
-  setSourceBadge(usedApi ? "api" : "local");
+  setSourceBadge(sources);
 
   setStatus(
     `${lines.length} unique card(s), ${total} total.` +
@@ -581,7 +619,7 @@ async function convert() {
   setBusy(true);
   try {
     const checkTcg = els.optTcgFlag.checked;
-    const { cards, warning, usedApi, apiLookupCount } = await resolveNames(
+    const { cards, warning, usedApi, apiLookupCount, sources } = await resolveNames(
       ids,
       checkTcg,
       setStatus
@@ -590,7 +628,7 @@ async function convert() {
     const { lines, unresolved, ocgOnly } = buildLines(counts, cards);
     let total = 0;
     for (const v of counts.values()) total += v;
-    render({ lines, unresolved, ocgOnly, warning, empty, total, usedApi, apiLookupCount });
+    render({ lines, unresolved, ocgOnly, warning, empty, total, usedApi, apiLookupCount, sources });
   } catch (exc) {
     showError(`${exc.name || "Error"}: ${exc.message}`);
   } finally {
