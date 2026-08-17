@@ -220,12 +220,6 @@ input[type="checkbox"] {
   border: 1px solid rgba(79, 140, 255, 0.35);
 }
 
-.source-badge.mixed {
-  color: var(--warn);
-  background: rgba(217, 154, 59, 0.12);
-  border: 1px solid rgba(217, 154, 59, 0.35);
-}
-
 .spinner {
   width: 18px;
   height: 18px;
