@@ -196,25 +196,37 @@ input[type="checkbox"] {
 .source-badge {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   margin-left: 10px;
-  padding: 2px 10px;
-  border-radius: 999px;
-  font-size: 0.78rem;
-  font-weight: 600;
   vertical-align: middle;
-  white-space: nowrap;
 }
 
 .source-badge.hidden { display: none; }
 
-.source-badge.local {
+.source-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.source-chip.file {
   color: var(--ok);
   background: rgba(76, 175, 110, 0.12);
   border: 1px solid rgba(76, 175, 110, 0.35);
 }
 
-.source-badge.api {
+.source-chip.cache {
+  color: var(--warn);
+  background: rgba(217, 154, 59, 0.12);
+  border: 1px solid rgba(217, 154, 59, 0.35);
+}
+
+.source-chip.api {
   color: var(--info);
   background: rgba(79, 140, 255, 0.12);
   border: 1px solid rgba(79, 140, 255, 0.35);
