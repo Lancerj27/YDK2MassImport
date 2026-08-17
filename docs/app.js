@@ -239,7 +239,7 @@ async function resolveNames(passcodes, checkTcg, onProgress) {
   if (missing.length === 0) {
     onProgress &&
       onProgress("All names resolved from the local database — no lookup needed.");
-    return { cards: merged, warning: null };
+    return { cards: merged, warning: null, usedApi: false, apiLookupCount: 0 };
   }
 
   const chunks = [];
@@ -252,6 +252,11 @@ async function resolveNames(passcodes, checkTcg, onProgress) {
       `${passcodes.length - missing.length} card(s) resolved locally. ` +
         `Looking up ${missing.length} more from the live database...`
     );
+
+  // We're about to attempt at least one live request -- track that
+  // regardless of whether it ultimately succeeds, so the UI can tell the
+  // user the local database alone wasn't enough this time.
+  const usedApi = true;
 
   for (let n = 0; n < chunks.length; n++) {
     const chunk = chunks[n];
@@ -286,11 +291,19 @@ async function resolveNames(passcodes, checkTcg, onProgress) {
     }
   }
 
+  // Count how many of the originally-missing passcodes actually got
+  // resolved, rather than how many were merely asked about -- a chunk can
+  // include ids the API doesn't recognise, which don't count as resolved.
+  let apiLookupCount = 0;
+  for (const cid of missing) {
+    if (String(cid) in merged) apiLookupCount++;
+  }
+
   // Only the live-lookup results (and misses) go into localStorage --
   // the local static database is re-fetched from cards.json each load,
   // so there's no need to duplicate it into localStorage too.
   saveCache(cards, misses);
-  return { cards: merged, warning };
+  return { cards: merged, warning, usedApi, apiLookupCount };
 }
 
 function tally(ids) {
@@ -421,11 +434,24 @@ function showError(text) {
   setStatus("Nothing to convert.");
 }
 
-function render({ lines, unresolved, ocgOnly, warning, empty, total }) {
+function render({ lines, unresolved, ocgOnly, warning, empty, total, usedApi, apiLookupCount }) {
   state.lines = lines;
   els.output.value = lines.join("\n");
 
   const notes = [];
+  if (usedApi && apiLookupCount > 0) {
+    notes.push([
+      "info",
+      `${apiLookupCount} card(s) weren't in the local database and were ` +
+        "looked up live from YGOPRODeck.",
+    ]);
+  } else if (usedApi && apiLookupCount === 0 && !warning) {
+    notes.push([
+      "info",
+      "Some card(s) weren't in the local database and a live lookup was " +
+        "attempted, but none were found.",
+    ]);
+  }
   if (warning) notes.push(["err", warning]);
   if (unresolved.length) {
     notes.push([
@@ -512,12 +538,16 @@ async function convert() {
   setBusy(true);
   try {
     const checkTcg = els.optTcgFlag.checked;
-    const { cards, warning } = await resolveNames(ids, checkTcg, setStatus);
+    const { cards, warning, usedApi, apiLookupCount } = await resolveNames(
+      ids,
+      checkTcg,
+      setStatus
+    );
     const counts = tally(ids);
     const { lines, unresolved, ocgOnly } = buildLines(counts, cards);
     let total = 0;
     for (const v of counts.values()) total += v;
-    render({ lines, unresolved, ocgOnly, warning, empty, total });
+    render({ lines, unresolved, ocgOnly, warning, empty, total, usedApi, apiLookupCount });
   } catch (exc) {
     showError(`${exc.name || "Error"}: ${exc.message}`);
   } finally {
