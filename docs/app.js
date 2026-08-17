@@ -211,18 +211,22 @@ function indexResponse(payload, out) {
 }
 
 async function resolveNames(passcodes, checkTcg, onProgress) {
-  // Local static database first -- this satisfies the overwhelming
-  // majority of lookups with zero network calls.
+  // cards.json is the primary, authoritative source -- it's the curated
+  // static database we control and regenerate deliberately. The
+  // localStorage cache exists only to remember live API results for
+  // passcodes cards.json genuinely doesn't have (new cards), so it must
+  // never override a cards.json entry, even a stale-looking one; if
+  // cards.json needs correcting, that happens by regenerating cards.json,
+  // not by letting a per-browser cache silently take precedence over it.
   onProgress && onProgress("Loading local card database...");
   const localCards = await loadLocalCards();
 
   const { cards, misses } = loadCache();
   const now = Date.now();
 
-  // Merge local cards into the working set. localStorage-cached entries
-  // (from earlier live lookups, e.g. brand-new cards) take precedence
-  // since they may be more complete (e.g. include the tcg flag).
-  const merged = { ...localCards, ...cards };
+  // cards.json wins on any key collision. localStorage entries only fill
+  // in passcodes that cards.json doesn't have at all.
+  const merged = { ...cards, ...localCards };
 
   function satisfied(cid) {
     const key = String(cid);
