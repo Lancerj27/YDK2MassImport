@@ -89,8 +89,11 @@ function parseYdk(text) {
 // Local static card database (cards.json)
 // ---------------------------------------------------------------------
 
-// Loaded once and reused for the lifetime of the page. Shape matches the
-// in-memory `cards` cache used elsewhere: { [passcode]: { name, tcg } }.
+// Loaded once and reused for the lifetime of the page. cards.json is a raw
+// cardinfo.php-shaped snapshot ({ data: [ {id, name, misc_info, card_images,
+// ...}, ... ] }) -- the exact same shape the live API returns. We run it
+// through indexResponse(), the same function used for live lookups, so both
+// paths produce an identical flat { [passcode]: { name, tcg } } map.
 let localCardsPromise = null;
 
 function loadLocalCards() {
@@ -99,6 +102,11 @@ function loadLocalCards() {
       .then((resp) => {
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
         return resp.json();
+      })
+      .then((payload) => {
+        const out = {};
+        indexResponse(payload, out);
+        return out;
       })
       .catch((exc) => {
         // Not fatal -- we just fall back to the live API for everything.
