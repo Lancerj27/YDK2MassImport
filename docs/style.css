@@ -193,6 +193,39 @@ input[type="checkbox"] {
   font-size: 0.9rem;
 }
 
+.source-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 10px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.source-badge.hidden { display: none; }
+
+.source-badge.local {
+  color: var(--ok);
+  background: rgba(76, 175, 110, 0.12);
+  border: 1px solid rgba(76, 175, 110, 0.35);
+}
+
+.source-badge.api {
+  color: var(--info);
+  background: rgba(79, 140, 255, 0.12);
+  border: 1px solid rgba(79, 140, 255, 0.35);
+}
+
+.source-badge.mixed {
+  color: var(--warn);
+  background: rgba(217, 154, 59, 0.12);
+  border: 1px solid rgba(217, 154, 59, 0.35);
+}
+
 .spinner {
   width: 18px;
   height: 18px;
